@@ -4,6 +4,8 @@ import { Renderer } from 'expo-three';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import * as THREE from 'three';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -85,6 +87,42 @@ export default function App(): React.JSX.Element {
     return new THREE.Mesh(geometry, material);
   };
 
+  const addTextToModel = (model: THREE.Group) => {
+    // Create text geometry
+    const loader = new FontLoader();
+    loader.load(
+      '../../assets/fonts/GTAmericaMonoVF.ttf',
+      (font) => {
+        const textGeometry = new TextGeometry('Bilt', {
+          font: font,
+          size: 5,
+          height: 1,
+        });
+        
+        // Center the text
+        textGeometry.computeBoundingBox();
+        const textWidth = textGeometry.boundingBox!.max.x - textGeometry.boundingBox!.min.x;
+        const textHeight = textGeometry.boundingBox!.max.y - textGeometry.boundingBox!.min.y;
+        
+        // Create material
+        const textMaterial = new THREE.MeshPhongMaterial({
+          color: 0xffffff,
+          emissive: 0xffffff,
+          emissiveIntensity: 0.5,
+          shininess: 100,
+          specular: 0xffffff
+        });
+        
+        // Create mesh
+        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+        textMesh.position.set(-textWidth/2, -textHeight/2, 0.1);
+        
+        // Add to model
+        model.add(textMesh);
+      }
+    );
+  };
+
   const onContextCreate = async (gl: ExpoWebGLRenderingContext): Promise<void> => {
     try {
       // Create renderer with proper settings
@@ -120,6 +158,9 @@ export default function App(): React.JSX.Element {
         
         const loadedModel = gltf.scene;
         loadedModel.scale.set(1, 1, 1);
+        
+        // Add text to the model
+        addTextToModel(loadedModel);
         
         // Center the model
         const box = new THREE.Box3().setFromObject(loadedModel);
