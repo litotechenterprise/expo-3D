@@ -111,25 +111,15 @@ export default function App(): React.JSX.Element {
 
       // Setup lighting
       setupLighting(scene);
-
-      // Create example model (replace with your model loading)
-      // const model = createExampleModel();
-      // scene.add(model);
-      // modelRef.current = new THREE.Group();
-      // modelRef.current.add(model);
-      // scene.add(modelRef.current);
-
-      // Example: Load a GLTF model
-      // Uncomment and modify when you have a model
       
       try {
         const gltf = await loadGLTFModel(
-          require('../../assets/models/Duck.glb'),
+          require('../../assets/models/spline-export.glb'),
           scene
         );
         
         const loadedModel = gltf.scene;
-        loadedModel.scale.set(0.1, 0.1, 0.1);
+        loadedModel.scale.set(1, 1, 1);
         
         // Center the model
         const box = new THREE.Box3().setFromObject(loadedModel);
@@ -149,11 +139,11 @@ export default function App(): React.JSX.Element {
           // Update mixer in animation loop
           // mixer.update(deltaTime);
         }
-      } catch (error: unknown) {
+      } catch (error) {
         console.error('Model loading error:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
       }
-    
+      
 
       setLoading(false);
 
