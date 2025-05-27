@@ -36,23 +36,19 @@ export const loadGLTFModel = async (
 
   export const setupLighting = (scene: THREE.Scene): void => {
     // Ambient light for overall illumination
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight();
+    ambientLight.intensity = 0.2;
     scene.add(ambientLight);
     //Main directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
-    directionalLight.position.set(5, 10, 5);
+    const directionalLight = new THREE.DirectionalLight();
+    directionalLight.position.set(5, 5, 5);
     directionalLight.castShadow = true;
-    directionalLight.shadow.camera.near = 0.1;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -10;
-    directionalLight.shadow.camera.right = 10;
-    directionalLight.shadow.camera.top = 10;
-    directionalLight.shadow.camera.bottom = -10;
+    directionalLight.intensity = 0.2
     scene.add(directionalLight);
-    // Accent point light
-    const pointLight = new THREE.PointLight(0x4080ff, 1.0);
-    pointLight.position.set(-5, 5, -5);
-    scene.add(pointLight);
+    // // Accent point light
+    // const pointLight = new THREE.PointLight(0x4080ff, 1.0);
+    // pointLight.position.set(-5, 5, -5);
+    // scene.add(pointLight);
   };
 
 
