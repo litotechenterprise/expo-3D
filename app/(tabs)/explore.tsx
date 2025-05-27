@@ -1,27 +1,29 @@
-import { Asset } from 'expo-asset';
+import { addTextToModel, loadGLTFModel, setupLighting } from '@/helpers';
+import { MaterialControls } from '@/types';
 import { ExpoWebGLRenderingContext, GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import * as THREE from 'three';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-
-interface TouchPosition {
-  x: number;
-  y: number;
-}
 
 export default function App(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
+
+
+  const [materialProps,] = useState<MaterialControls>({
+    metalness: 0.74,
+    roughness: 0.17,
+    clearcoat: 0.36,
+    clearcoatRoughness: 0.15,
+    envMapIntensity: 1.0,
+    color: '#356DA0', // Blue status default
+    bloom: 2
+  });
 
   useEffect(() => {
     return () => {
@@ -30,98 +32,6 @@ export default function App(): React.JSX.Element {
     };
   }, []);
 
-  const loadGLTFModel = async (
-    modelPath: any, // Module import type
-    scene: THREE.Scene
-  ): Promise<GLTF> => {
-    try {
-      const asset = Asset.fromModule(modelPath);
-      await asset.downloadAsync();
-      
-      return new Promise((resolve, reject) => {
-        const loader = new GLTFLoader();
-        loader.load(
-          asset.uri!,
-          (gltf: GLTF) => resolve(gltf),
-          (progress: ProgressEvent) => {
-            console.log('Loading progress:', (progress.loaded / progress.total) * 100, '%');
-          },
-          (error: unknown) => reject(error instanceof Error ? error : new Error(String(error)))
-        );
-      });
-    } catch (error) {
-      throw new Error(`Failed to load model: ${error}`);
-    }
-  };
-
-  const setupLighting = (scene: THREE.Scene): void => {
-    // Ambient light for overall illumination
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-
-    // Main directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    directionalLight.position.set(5, 10, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.camera.near = 0.1;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -10;
-    directionalLight.shadow.camera.right = 10;
-    directionalLight.shadow.camera.top = 10;
-    directionalLight.shadow.camera.bottom = -10;
-    scene.add(directionalLight);
-
-    // Accent point light
-    const pointLight = new THREE.PointLight(0x4080ff, 0.5);
-    pointLight.position.set(-5, 5, -5);
-    scene.add(pointLight);
-  };
-
-  const createExampleModel = (): THREE.Mesh => {
-    const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x00ff88,
-      shininess: 100,
-      specular: 0x222222
-    });
-    return new THREE.Mesh(geometry, material);
-  };
-
-  const addTextToModel = (model: THREE.Group) => {
-    // Create text geometry
-    const loader = new FontLoader();
-    loader.load(
-      '../../assets/fonts/GTAmericaMonoVF.ttf',
-      (font) => {
-        const textGeometry = new TextGeometry('Bilt', {
-          font: font,
-          size: 5,
-          height: 1,
-        });
-        
-        // Center the text
-        textGeometry.computeBoundingBox();
-        const textWidth = textGeometry.boundingBox!.max.x - textGeometry.boundingBox!.min.x;
-        const textHeight = textGeometry.boundingBox!.max.y - textGeometry.boundingBox!.min.y;
-        
-        // Create material
-        const textMaterial = new THREE.MeshPhongMaterial({
-          color: 0xffffff,
-          emissive: 0xffffff,
-          emissiveIntensity: 0.5,
-          shininess: 100,
-          specular: 0xffffff
-        });
-        
-        // Create mesh
-        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.position.set(-textWidth/2, -textHeight/2, 0.1);
-        
-        // Add to model
-        model.add(textMesh);
-      }
-    );
-  };
 
   const onContextCreate = async (gl: ExpoWebGLRenderingContext): Promise<void> => {
     try {
@@ -146,10 +56,8 @@ export default function App(): React.JSX.Element {
       );
       camera.position.set(0, 2, 5);
       camera.lookAt(0, 0, 0);
-
       // Setup lighting
       setupLighting(scene);
-      
       try {
         const gltf = await loadGLTFModel(
           require('../../assets/models/spline-export.glb'),
@@ -159,62 +67,95 @@ export default function App(): React.JSX.Element {
         const loadedModel = gltf.scene;
         loadedModel.scale.set(1, 1, 1);
         
+        const x = 0
         // Add text to the model
-        addTextToModel(loadedModel);
-        
+        addTextToModel(loadedModel, 'Blue Status', new THREE.Vector3(0, -4.72, 0.009));
+        addTextToModel(loadedModel, 'Pablo Endara-Santiago', new THREE.Vector3(0, -7.32, 0.009));
+        addTextToModel(loadedModel, 'West Village', new THREE.Vector3(0, -4.72, 0.051), [-1, 1, 1]);
+        addTextToModel(loadedModel, `Member Since ${new Date().getFullYear()}`, new THREE.Vector3(0, -7.32, 0.051), [-1, 1, 1]);
+
+        const meshes: THREE.Mesh[] = [];
+        loadedModel.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            meshes.push(object);
+          }
+        });
+
+           // Target specific mesh by index (change this index as needed)
+      const targetIndex = 2; // You can change this to target different meshes
+      meshes.forEach((child, index) => {
+        if (index === targetIndex) {
+          const newMaterial = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(materialProps.color),
+            metalness: materialProps.metalness,
+            roughness: materialProps.roughness,
+            clearcoat: materialProps.clearcoat,
+            clearcoatRoughness: materialProps.clearcoatRoughness,
+            envMapIntensity: materialProps.envMapIntensity,
+          });
+          child.material = newMaterial;
+          child.material.needsUpdate = true;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        } else {
+          const original = child.material as THREE.MeshStandardMaterial;
+          const newMaterial = new THREE.MeshPhysicalMaterial({
+            color: original.color.clone(),
+            metalness: materialProps.metalness,
+            roughness: materialProps.roughness,
+            clearcoat: materialProps.clearcoat,
+            clearcoatRoughness: materialProps.clearcoatRoughness,
+            envMapIntensity: materialProps.envMapIntensity,
+          });
+          child.material = newMaterial;
+          child.material.needsUpdate = true;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      })  
+      
+    
         // Center the model
         const box = new THREE.Box3().setFromObject(loadedModel);
         const center = box.getCenter(new THREE.Vector3());
         loadedModel.position.sub(center);
-        
         modelRef.current = loadedModel;
         scene.add(loadedModel);
-        
         // Play animations if any
         if (gltf.animations.length > 0) {
           const mixer = new THREE.AnimationMixer(loadedModel);
           gltf.animations.forEach((clip) => {
             mixer.clipAction(clip).play();
           });
-          
-          // Update mixer in animation loop
-          // mixer.update(deltaTime);
+        
         }
       } catch (error) {
         console.error('Model loading error:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
       }
-      
-
-      setLoading(false);
-
-      // Touch controls state
-      let touchStart: TouchPosition = { x: 0, y: 0 };
-      let modelRotation = { x: 0, y: 0 };
-
-      // Animation loop
-      const clock = new THREE.Clock();
-      
+  
       const animate = (): void => {
         animationFrameRef.current = requestAnimationFrame(animate);
-
-        const deltaTime = clock.getDelta();
-
         // Auto-rotate the model
         if (modelRef.current) {
           modelRef.current.rotation.y += 0.01;
         }
-
         // Render the scene
         renderer.render(scene, camera);
         gl.endFrameEXP();
       };
-      
+
       animate();
     } catch (error) {
       console.error('Scene setup error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
       setLoading(false);
+    } finally {
+
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+      
     }
   };
 
