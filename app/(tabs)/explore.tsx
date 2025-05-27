@@ -67,7 +67,6 @@ export default function App(): React.JSX.Element {
         const loadedModel = gltf.scene;
         loadedModel.scale.set(1, 1, 1);
         
-        const x = 0
         // Add text to the model
         addTextToModel(loadedModel, 'Blue Status', new THREE.Vector3(0, -4.72, 0.009));
         addTextToModel(loadedModel, 'Pablo Endara-Santiago', new THREE.Vector3(0, -7.32, 0.009));
@@ -81,7 +80,7 @@ export default function App(): React.JSX.Element {
           }
         });
 
-           // Target specific mesh by index (change this index as needed)
+      // Target specific mesh by index (change this index as needed)
       const targetIndex = 2; // You can change this to target different meshes
       meshes.forEach((child, index) => {
         if (index === targetIndex) {
@@ -121,14 +120,32 @@ export default function App(): React.JSX.Element {
         loadedModel.position.sub(center);
         modelRef.current = loadedModel;
         scene.add(loadedModel);
+
         // Play animations if any
         if (gltf.animations.length > 0) {
           const mixer = new THREE.AnimationMixer(loadedModel);
           gltf.animations.forEach((clip) => {
             mixer.clipAction(clip).play();
           });
-        
         }
+
+        // Animation loop
+        const clock = new THREE.Clock();
+        const animate = (): void => {
+          animationFrameRef.current = requestAnimationFrame(animate);
+          const deltaTime = clock.getDelta();
+
+          // Smooth spinning animation
+          if (modelRef.current) {
+            modelRef.current.rotation.y += 0.005; // Slower rotation speed
+          }
+
+          // Render the scene
+          renderer.render(scene, camera);
+          gl.endFrameEXP();
+        };
+        
+        animate();
       } catch (error) {
         console.error('Model loading error:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
@@ -154,7 +171,7 @@ export default function App(): React.JSX.Element {
 
       setTimeout(() => {
         setLoading(false);
-      }, 1000);
+      }, 1200);
       
     }
   };
