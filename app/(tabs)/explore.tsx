@@ -23,17 +23,25 @@ export default function App(): React.JSX.Element {
   // const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const animationCompleteRef = useRef<AnimationState>(AnimationState.SPIN_UP);
-
-  const [isDragging, setIsDragging] = useState(false);
   const [dragInfo, setDragInfo] = useState({ x: 0, y: 0 });
-
+  const [isDragging, setIsDragging] = useState(false);
+  
 
    // Store the initial touch position
    const lastTouchRef = useRef({ x: 0, y: 0 });
-   const cubeRotationRef = useRef({ x: 0, y: 0 });
+   const rotationRef = useRef({ x: 0, y: 0 });
+
+   // Velocity tracking
+   const velocityRef = useRef({ x: 0, y: 0 });
+   const lastMoveTimeRef = useRef(Date.now());
+   const lastDeltaRef = useRef({ x: 0, y: 0 });
+   
+   // Physics constants
+   const DAMPING = 0.98; // How quickly the spin slows down (0.95 = slow decay, 0.8 = fast decay)
+   const MIN_VELOCITY = 0.001; // Minimum velocity before stopping
 
 
-  const [materialProps,] = useState<MaterialControls>({
+  const [materialProps,setMaterialProps] = useState<MaterialControls>({
     metalness: 0.74,
     roughness: 0.17,
     clearcoat: 0.36,
@@ -57,34 +65,52 @@ export default function App(): React.JSX.Element {
             x: touch.locationX, 
             y: touch.locationY 
           };
+          
+          // Reset velocity when starting new drag
+          velocityRef.current = { x: 0, y: 0 };
+          lastMoveTimeRef.current = Date.now();
         },
         
         onPanResponderMove: (evt) => {
-          // Dragging
+
           const touch = evt.nativeEvent;
-          const deltaX = touch.locationX - lastTouchRef.current.x;
-          const deltaY = touch.locationY - lastTouchRef.current.y;
-          
-          // Update rotation based on drag
-          cubeRotationRef.current.y += deltaX * 0.01;
-          cubeRotationRef.current.x += deltaY * 0.01;
-          
-          // Update last touch position
-          lastTouchRef.current = { 
-            x: touch.locationX, 
-            y: touch.locationY 
-          };
-          
-          // Update drag info display
-          setDragInfo({ 
-            x: Math.round(touch.locationX), 
-            y: Math.round(touch.locationY) 
-          });
+        const currentTime = Date.now();
+        const deltaTime = currentTime - lastMoveTimeRef.current;
+        
+        const deltaX = touch.locationX - lastTouchRef.current.x;
+        const deltaY = touch.locationY - lastTouchRef.current.y;
+        
+        // Update rotation based on drag
+        rotationRef.current.y += deltaX * 0.01;
+        rotationRef.current.x += deltaY * 0.01;
+        
+        // Calculate velocity (speed of drag)
+        if (deltaTime > 0) {
+          velocityRef.current.x = deltaX * 0.01;
+          velocityRef.current.y = deltaY * 0.01;
+        }
+        
+        // Store for next frame
+        lastTouchRef.current = { 
+          x: touch.locationX, 
+          y: touch.locationY 
+        };
+        lastMoveTimeRef.current = currentTime;
+        lastDeltaRef.current = { x: deltaX, y: deltaY };
+        
+        // Update drag info display
+        setDragInfo({ 
+          x: Math.round(touch.locationX), 
+          y: Math.round(touch.locationY) 
+        });
+
+         
         },
         
         onPanResponderRelease: () => {
           // Touch ended
           setIsDragging(false);
+        
         },
       })
     ).current;
@@ -95,6 +121,14 @@ export default function App(): React.JSX.Element {
       // Cancel animation frame aka pause animation
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
+  }, []);
+
+
+  // Set initial rotation
+  useEffect(() => {
+    if (modelRef.current) {
+      modelRef.current.rotation.y = Math.PI;
+    }
   }, []);
 
 
@@ -182,30 +216,57 @@ export default function App(): React.JSX.Element {
         // // Find center of screen
         // const box = new THREE.Box3().setFromObject(statusCard);
         // const center = box.getCenter(new THREE.Vector3())
-
         // Set position of model
         statusCard.position.y = -1;
-        //modelRef.current = statusCard;
+        modelRef.current = statusCard;
         scene.add(statusCard);
 
   
       const animate = (): void => {
           requestAnimationFrame(animate);
           if(animationCompleteRef.current === AnimationState.SPIN_UP) {
-            statusCard.position.y += 0.14; 
-            statusCard.rotation.y += 0.04;
+            statusCard.position.y += 0.19; 
+            statusCard.rotation.y -= 0.043;
             if (statusCard.position.y > 7.2) {
               animationCompleteRef.current = AnimationState.SPIN_DOWN;
             }
           } else if (animationCompleteRef.current === AnimationState.SPIN_DOWN) {
             statusCard.position.y -= 0.02; 
-            statusCard.rotation.y -= 0.02;
+            statusCard.rotation.y += 0.02;
             if (statusCard.position.y < 6.1) {
               animationCompleteRef.current = AnimationState.IN_PLACE;
             }
           } else if (animationCompleteRef.current === AnimationState.IN_PLACE) {
-            //statusCard.rotation.y -= 0.001;
-            statusCard.rotation.y = cubeRotationRef.current.y;
+            statusCard.rotation.y += 0.02;
+            if (statusCard.position.y > 0) {
+              animationCompleteRef.current = AnimationState.COMPLETED;
+            }
+          }
+          else if (animationCompleteRef.current === AnimationState.COMPLETED) {
+
+            // Apply momentum when not dragging
+              if (!isDragging) {
+                // Apply velocity to rotation
+                //rotationRef.current.x += velocityRef.current.y;
+                rotationRef.current.y += velocityRef.current.x;
+                
+                // Apply damping to gradually slow down
+                velocityRef.current.x *= DAMPING;
+                velocityRef.current.y *= DAMPING;
+                
+                // Stop completely when velocity is very small
+                if (Math.abs(velocityRef.current.y) < MIN_VELOCITY) {
+                  velocityRef.current.y = 0;
+                }
+              }
+
+
+
+            // Apply rotation to cube
+            if (modelRef.current) {
+              modelRef.current.rotation.y = rotationRef.current.y;
+            }
+
           }
 
         // Render the scene
@@ -223,12 +284,31 @@ export default function App(): React.JSX.Element {
     }
   };
 
+  const isSpinning = Math.abs(velocityRef.current.x) > 0 || Math.abs(velocityRef.current.y) > 0;
+
   return (
-    <View style={CardScreenStyles.container}>
+    <View style={CardScreenStyles.container} {...panResponder.panHandlers}>
       <GLView
         style={CardScreenStyles.glView}
         onContextCreate={onContextCreate}
       />
+
+<View style={CardScreenStyles.infoContainer}>
+       
+        <Text style={CardScreenStyles.info}>
+          {isDragging 
+            ? `Dragging at: (${dragInfo.x}, ${dragInfo.y})` 
+            : isSpinning 
+              ? 'Spinning with momentum...' 
+              : 'Touch and drag to interact'}
+        </Text>
+        <View style={[
+          CardScreenStyles.indicator, 
+          isDragging && CardScreenStyles.indicatorDragging,
+          isSpinning && !isDragging && CardScreenStyles.indicatorSpinning
+        ]} />
+      </View>
+      
       {loading && (
         <View style={CardScreenStyles.loadingContainer}>
           <ActivityIndicator size="large" color="#00ff88" />
