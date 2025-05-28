@@ -20,7 +20,6 @@ export default function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  // const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const animationCompleteRef = useRef<AnimationState>(AnimationState.SPIN_UP);
   const [dragInfo, setDragInfo] = useState({ x: 0, y: 0 });
@@ -42,13 +41,13 @@ export default function App(): React.JSX.Element {
 
 
   const [materialProps,setMaterialProps] = useState<MaterialControls>({
-    metalness: 0.74,
-    roughness: 0.17,
-    clearcoat: 0.36,
-    clearcoatRoughness: 0.15,
-    envMapIntensity: 1.0,
+    metalness: 0.97,
+    roughness: 0,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.1,
+    envMapIntensity: 1.5,
     color: '#588bbb', // Blue status default
-    bloom: 2
+    bloom: 5
   });
 
     // Create PanResponder for handling touch/drag events
@@ -106,7 +105,6 @@ export default function App(): React.JSX.Element {
 
          
         },
-        
         onPanResponderRelease: () => {
           // Touch ended
           setIsDragging(false);
@@ -146,12 +144,12 @@ export default function App(): React.JSX.Element {
 
       // Create camera
       const camera = new THREE.PerspectiveCamera(
-        75,
+        75, // 75
         gl.drawingBufferWidth / gl.drawingBufferHeight,
         0.1,
         1000
       );
-      camera.position.set(0, 1, 5); 
+      camera.position.set(0,0,7); // 0,0,6.5
       camera.lookAt(0, 0, 0);
 
       // Setup lighting
@@ -168,10 +166,10 @@ export default function App(): React.JSX.Element {
       statusCard.scale.set(1, 1, 1);
         
       // Add text to the model
-      addTextToModel(statusCard, 'Blue Status', new THREE.Vector3(0, -4.72, 0.009));
-      addTextToModel(statusCard, 'Pablo Endara-Santiago', new THREE.Vector3(0, -7.32, 0.009));
-      addTextToModel(statusCard, 'West Village', new THREE.Vector3(0, -4.72, 0.051), [-1, 1, 1]);
-      addTextToModel(statusCard, `Member Since ${`'25`}`, new THREE.Vector3(0, -7.32, 0.051), [-1, 1, 1]);
+      addTextToModel(statusCard, 'West Village', new THREE.Vector3(0, -4.72, 0.009));
+      addTextToModel(statusCard, `Member Since ${`'25`}`, new THREE.Vector3(0, -7.32, 0.009));
+      addTextToModel(statusCard, 'Blue Status', new THREE.Vector3(0, -4.72, 0.051), [-1, 1, 1]);
+      addTextToModel(statusCard, `Pablo Endara-Santiago`, new THREE.Vector3(0, -7.32, 0.051), [-1, 1, 1]);
 
       const meshes: THREE.Mesh[] = [];
       statusCard.traverse((object) => {
@@ -217,7 +215,11 @@ export default function App(): React.JSX.Element {
         // const box = new THREE.Box3().setFromObject(statusCard);
         // const center = box.getCenter(new THREE.Vector3())
         // Set position of model
-        statusCard.position.y = -1;
+
+
+
+        statusCard.position.y = 0;
+        statusCard.rotation.y = -3.5;
         modelRef.current = statusCard;
         scene.add(statusCard);
 
@@ -225,23 +227,19 @@ export default function App(): React.JSX.Element {
       const animate = (): void => {
           requestAnimationFrame(animate);
           if(animationCompleteRef.current === AnimationState.SPIN_UP) {
-            statusCard.position.y += 0.19; 
-            statusCard.rotation.y -= 0.043;
-            if (statusCard.position.y > 7.2) {
+            statusCard.position.y += 0.18; 
+            statusCard.rotation.y += 0.1;
+            if (statusCard.position.y > 6.1) {
               animationCompleteRef.current = AnimationState.SPIN_DOWN;
             }
           } else if (animationCompleteRef.current === AnimationState.SPIN_DOWN) {
-            statusCard.position.y -= 0.02; 
-            statusCard.rotation.y += 0.02;
-            if (statusCard.position.y < 6.1) {
-              animationCompleteRef.current = AnimationState.IN_PLACE;
-            }
-          } else if (animationCompleteRef.current === AnimationState.IN_PLACE) {
-            statusCard.rotation.y += 0.02;
-            if (statusCard.position.y > 0) {
+            statusCard.position.y -= 0.018;
+            statusCard.rotation.y += 0.1;
+            if (statusCard.position.y < 6.0 && statusCard.rotation.y > 0.1) {
+              statusCard.rotation
               animationCompleteRef.current = AnimationState.COMPLETED;
             }
-          }
+          } 
           else if (animationCompleteRef.current === AnimationState.COMPLETED) {
 
             // Apply momentum when not dragging
@@ -249,26 +247,19 @@ export default function App(): React.JSX.Element {
                 // Apply velocity to rotation
                 //rotationRef.current.x += velocityRef.current.y;
                 rotationRef.current.y += velocityRef.current.x;
-                
                 // Apply damping to gradually slow down
                 velocityRef.current.x *= DAMPING;
                 velocityRef.current.y *= DAMPING;
-                
                 // Stop completely when velocity is very small
                 if (Math.abs(velocityRef.current.y) < MIN_VELOCITY) {
                   velocityRef.current.y = 0;
                 }
               }
-
-
-
             // Apply rotation to cube
             if (modelRef.current) {
               modelRef.current.rotation.y = rotationRef.current.y;
             }
-
           }
-
         // Render the scene
         renderer.render(scene, camera);
         gl.endFrameEXP();
@@ -292,22 +283,17 @@ export default function App(): React.JSX.Element {
         style={CardScreenStyles.glView}
         onContextCreate={onContextCreate}
       />
-
-<View style={CardScreenStyles.infoContainer}>
-       
-        <Text style={CardScreenStyles.info}>
-          {isDragging 
-            ? `Dragging at: (${dragInfo.x}, ${dragInfo.y})` 
-            : isSpinning 
-              ? 'Spinning with momentum...' 
-              : 'Touch and drag to interact'}
-        </Text>
+{/* 
+    <View style={CardScreenStyles.infoContainer}>
+       <Text style={CardScreenStyles.info}>
+          {`Rotation: ${modelRef.current?.rotation.y}`}
+        </Text> 
         <View style={[
           CardScreenStyles.indicator, 
           isDragging && CardScreenStyles.indicatorDragging,
           isSpinning && !isDragging && CardScreenStyles.indicatorSpinning
         ]} />
-      </View>
+      </View> */}
       
       {loading && (
         <View style={CardScreenStyles.loadingContainer}>
