@@ -4,13 +4,14 @@ import { MaterialControls } from '@/types';
 import { ExpoWebGLRenderingContext, GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, PanResponder, Text, View } from 'react-native';
 import * as THREE from 'three';
 
 const enum AnimationState {
   SPIN_UP,
   SPIN_DOWN,
-  IDLING,
+  IN_PLACE,
+  COMPLETED
 }
 
 
@@ -20,7 +21,17 @@ export default function App(): React.JSX.Element {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   // const sceneRef = useRef<THREE.Scene | null>(null);
+  const modelRef = useRef<THREE.Group | null>(null);
   const animationCompleteRef = useRef<AnimationState>(AnimationState.SPIN_UP);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragInfo, setDragInfo] = useState({ x: 0, y: 0 });
+
+
+   // Store the initial touch position
+   const lastTouchRef = useRef({ x: 0, y: 0 });
+   const cubeRotationRef = useRef({ x: 0, y: 0 });
+
 
   const [materialProps,] = useState<MaterialControls>({
     metalness: 0.74,
@@ -31,6 +42,52 @@ export default function App(): React.JSX.Element {
     color: '#588bbb', // Blue status default
     bloom: 2
   });
+
+    // Create PanResponder for handling touch/drag events
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        
+        onPanResponderGrant: (evt) => {
+          // Touch started
+          setIsDragging(true);
+          const touch = evt.nativeEvent;
+          lastTouchRef.current = { 
+            x: touch.locationX, 
+            y: touch.locationY 
+          };
+        },
+        
+        onPanResponderMove: (evt) => {
+          // Dragging
+          const touch = evt.nativeEvent;
+          const deltaX = touch.locationX - lastTouchRef.current.x;
+          const deltaY = touch.locationY - lastTouchRef.current.y;
+          
+          // Update rotation based on drag
+          cubeRotationRef.current.y += deltaX * 0.01;
+          cubeRotationRef.current.x += deltaY * 0.01;
+          
+          // Update last touch position
+          lastTouchRef.current = { 
+            x: touch.locationX, 
+            y: touch.locationY 
+          };
+          
+          // Update drag info display
+          setDragInfo({ 
+            x: Math.round(touch.locationX), 
+            y: Math.round(touch.locationY) 
+          });
+        },
+        
+        onPanResponderRelease: () => {
+          // Touch ended
+          setIsDragging(false);
+        },
+      })
+    ).current;
 
   useEffect(() => {
     return () => {
@@ -46,14 +103,12 @@ export default function App(): React.JSX.Element {
       // Create renderer with proper settings
       const renderer = new Renderer({ gl });
       renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      //renderer.shadowMap.enabled = true;
+      //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
       // Create scene
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1a1a1a);
-      // scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
-      // sceneRef.current = scene;
+      scene.background = new THREE.Color("#101010");
 
       // Create camera
       const camera = new THREE.PerspectiveCamera(
@@ -62,7 +117,7 @@ export default function App(): React.JSX.Element {
         0.1,
         1000
       );
-      camera.position.set(0, 2, 5);
+      camera.position.set(0, 1, 5); 
       camera.lookAt(0, 0, 0);
 
       // Setup lighting
@@ -126,7 +181,7 @@ export default function App(): React.JSX.Element {
     
         // // Find center of screen
         // const box = new THREE.Box3().setFromObject(statusCard);
-        // const center = box.getCenter(new THREE.Vector3());
+        // const center = box.getCenter(new THREE.Vector3())
 
         // Set position of model
         statusCard.position.y = -1;
@@ -135,21 +190,22 @@ export default function App(): React.JSX.Element {
 
   
       const animate = (): void => {
-           animationFrameRef.current = requestAnimationFrame(animate);
+          requestAnimationFrame(animate);
           if(animationCompleteRef.current === AnimationState.SPIN_UP) {
-            statusCard.position.y += 0.07; // Slow rotation when idle
-            statusCard.rotation.y += 0.18;
+            statusCard.position.y += 0.14; 
+            statusCard.rotation.y += 0.04;
             if (statusCard.position.y > 7.2) {
               animationCompleteRef.current = AnimationState.SPIN_DOWN;
             }
           } else if (animationCompleteRef.current === AnimationState.SPIN_DOWN) {
-            statusCard.position.y -= 0.07; // Slow rotation when idle
-            statusCard.rotation.y -= 0.22;
+            statusCard.position.y -= 0.02; 
+            statusCard.rotation.y -= 0.02;
             if (statusCard.position.y < 6.1) {
-              animationCompleteRef.current = AnimationState.IDLING;
+              animationCompleteRef.current = AnimationState.IN_PLACE;
             }
-          } else if (animationCompleteRef.current === AnimationState.IDLING) {
-            statusCard.rotation.y -= 0.025;
+          } else if (animationCompleteRef.current === AnimationState.IN_PLACE) {
+            //statusCard.rotation.y -= 0.001;
+            statusCard.rotation.y = cubeRotationRef.current.y;
           }
 
         // Render the scene
