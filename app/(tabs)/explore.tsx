@@ -1,11 +1,13 @@
 import { addTextToModel, loadGLTFModel, setupLighting } from '@/helpers';
 import { CardScreenStyles } from '@/styles';
-import { MaterialControls } from '@/types';
 import { ExpoWebGLRenderingContext, GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, PanResponder, Text, View } from 'react-native';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 const enum AnimationState {
   SPIN_UP,
@@ -14,7 +16,6 @@ const enum AnimationState {
   COMPLETED
 }
 
-
 export default function App(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,6 @@ export default function App(): React.JSX.Element {
   const animationFrameRef = useRef<number | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const animationCompleteRef = useRef<AnimationState>(AnimationState.SPIN_UP);
-  const [dragInfo, setDragInfo] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   
 
@@ -40,15 +40,19 @@ export default function App(): React.JSX.Element {
    const MIN_VELOCITY = 0.001; // Minimum velocity before stopping
 
 
-  const [materialProps,setMaterialProps] = useState<MaterialControls>({
-    metalness: 0.97,
+  const materialProps = {
+    metalness: 0.90,
     roughness: 0,
-    clearcoat: 0.85,
+    clearcoat: 0.9,
     clearcoatRoughness: 0.1,
     envMapIntensity: 1.5,
     color: '#588bbb', // Blue status default
-    bloom: 5
-  });
+    bloom: 2,
+    ambient: 2.0,
+    directional: 2.0,
+    luminanceThreshold: 0.5,
+    luminanceSmoothing: 0.9
+  };
 
     // Create PanResponder for handling touch/drag events
     const panResponder = useRef(
@@ -97,11 +101,11 @@ export default function App(): React.JSX.Element {
         lastMoveTimeRef.current = currentTime;
         lastDeltaRef.current = { x: deltaX, y: deltaY };
         
-        // Update drag info display
-        setDragInfo({ 
-          x: Math.round(touch.locationX), 
-          y: Math.round(touch.locationY) 
-        });
+        // // Update drag info display
+        // setDragInfo({ 
+        //   x: Math.round(touch.locationX), 
+        //   y: Math.round(touch.locationY) 
+        // });
 
          
         },
@@ -135,21 +139,22 @@ export default function App(): React.JSX.Element {
       // Create renderer with proper settings
       const renderer = new Renderer({ gl });
       renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-      //renderer.shadowMap.enabled = true;
-      //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
       // Create scene
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color("#101010");
+      scene.background = new THREE.Color(0x1a1a1a);
+      scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
 
       // Create camera
       const camera = new THREE.PerspectiveCamera(
-        75, // 75
+        75,
         gl.drawingBufferWidth / gl.drawingBufferHeight,
         0.1,
         1000
       );
-      camera.position.set(0,0,7); // 0,0,6.5
+      camera.position.set(0, 0, 5); // 0,0,7
       camera.lookAt(0, 0, 0);
 
       // Setup lighting
@@ -210,18 +215,26 @@ export default function App(): React.JSX.Element {
           child.receiveShadow = true;
         }
       })  
-    
-        // // Find center of screen
+  
+        // Find center of screen
         // const box = new THREE.Box3().setFromObject(statusCard);
-        // const center = box.getCenter(new THREE.Vector3())
-        // Set position of model
-
-
-
-        statusCard.position.y = 0;
-        statusCard.rotation.y = -3.5;
+        statusCard.position.sub(new THREE.Vector3(0,-1.5,0));
         modelRef.current = statusCard;
         scene.add(statusCard);
+
+        // Setup post-processing
+        const composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+  
+        // Add bloom effect
+        const bloomPass = new UnrealBloomPass(
+          new THREE.Vector2(gl.drawingBufferWidth, gl.drawingBufferHeight),
+          materialProps.bloom,    // strength
+          0.4,    // radius
+          materialProps.luminanceThreshold    // threshold
+        );
+        composer.addPass(bloomPass);
 
   
       const animate = (): void => {
@@ -241,7 +254,6 @@ export default function App(): React.JSX.Element {
             }
           } 
           else if (animationCompleteRef.current === AnimationState.COMPLETED) {
-
             // Apply momentum when not dragging
               if (!isDragging) {
                 // Apply velocity to rotation
@@ -261,7 +273,7 @@ export default function App(): React.JSX.Element {
             }
           }
         // Render the scene
-        renderer.render(scene, camera);
+        composer.render();
         gl.endFrameEXP();
       };
       animate();
@@ -283,18 +295,6 @@ export default function App(): React.JSX.Element {
         style={CardScreenStyles.glView}
         onContextCreate={onContextCreate}
       />
-{/* 
-    <View style={CardScreenStyles.infoContainer}>
-       <Text style={CardScreenStyles.info}>
-          {`Rotation: ${modelRef.current?.rotation.y}`}
-        </Text> 
-        <View style={[
-          CardScreenStyles.indicator, 
-          isDragging && CardScreenStyles.indicatorDragging,
-          isSpinning && !isDragging && CardScreenStyles.indicatorSpinning
-        ]} />
-      </View> */}
-      
       {loading && (
         <View style={CardScreenStyles.loadingContainer}>
           <ActivityIndicator size="large" color="#00ff88" />

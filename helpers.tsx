@@ -34,19 +34,22 @@ export const loadGLTFModel = async (
 
   export const setupLighting = (scene: THREE.Scene): void => {
     // Ambient light for overall illumination
-    const ambientLight = new THREE.AmbientLight();
-    ambientLight.intensity = 12;
-
-    // ambientLight.castShadow
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
-    
-    // Main directional light
-    const directionalLight = new THREE.DirectionalLight();
-    directionalLight.position.set(5, 5, 5);
+
+    //Main directional light
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 4);
+    directionalLight.position.set(5, 10, 5);
     directionalLight.castShadow = true;
-    directionalLight.intensity = 6
+    directionalLight.shadow.camera.near = 0.1;
+    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.left = -10;
+    directionalLight.shadow.camera.right = 10;
+    directionalLight.shadow.camera.top = 10;
+    directionalLight.shadow.camera.bottom = -10;
     scene.add(directionalLight);
 
+ 
   };
 
 
@@ -79,12 +82,10 @@ export const loadGLTFModel = async (
 
         // Create material
         const textMaterial = new THREE.MeshPhysicalMaterial({
-          color: "#efefef",
-          metalness: 0.95,
-          roughness: 0,
-          clearcoat: 0.75,
-          clearcoatRoughness: 0.15,
-          envMapIntensity: 1.0,
+          color: "#ffffff",
+          metalness: 0.74,
+          roughness: 0.2,
+          clearcoat: 1.0,
         });
         
         // Create mesh
