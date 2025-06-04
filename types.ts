@@ -20,3 +20,20 @@ export interface MaterialControls {
     ambient: number;
     directional: number;
   }
+
+
+  export const enum AnimationState {
+    SPIN_UP,
+    SPIN_DOWN,
+    IN_PLACE,
+    COMPLETED
+  }
+
+  export const enum AnimationStateV2 {
+    UP_FAST,
+    UP_SLOW,
+    DOWN,
+    COMPLETED
+  }
+  
+  
