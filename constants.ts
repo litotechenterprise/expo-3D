@@ -17,20 +17,33 @@ export const statusOptions = [
     bevelSegments: 2
   }
 
-
-
     // Physics constants
     export const DAMPING = 0.98; // How quickly the spin slows down (0.95 = slow decay, 0.8 = fast decay)
     export const MIN_VELOCITY = 0.001; // Minimum velocity before stopping
  
+
+
+   export type MaterialType = {
+    metalness: number;
+    roughness: number;
+    clearcoat: number;
+    clearcoatRoughness: number;
+    envMapIntensity: number;
+    color: string;
+    bloom: number;
+    luminanceThreshold: number;
+    backgroundColor: string;
+   }
+
  
-   export const DEFAULT_MATERIAL_PROPS = {
+   export const DEFAULT_MATERIAL_PROPS: MaterialType = {
      metalness: 0.74,
      roughness: 0.17,
      clearcoat: 0.36,
      clearcoatRoughness: 0.90,
      envMapIntensity: 1,
-     color: '#272532', // Blue status default
+     color: '#588bbb', // Blue status default
      bloom: 2,
      luminanceThreshold: 0.5,
+     backgroundColor: '#fdfeff',
    };

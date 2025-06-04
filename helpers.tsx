@@ -32,13 +32,13 @@ export const loadGLTFModel = async (
 
 
 
-  export const setupLighting = (scene: THREE.Scene): void => {
+  export const setupLighting = (scene: THREE.Scene, intensity: number = 2): void => {
     // Ambient light for overall illumination
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, intensity);
     scene.add(ambientLight);
 
     //Main directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, intensity);
     directionalLight.position.set(5, 5, 5);
     directionalLight.castShadow = true;
     directionalLight.shadow.camera.near = 0.1;
@@ -47,9 +47,7 @@ export const loadGLTFModel = async (
     directionalLight.shadow.camera.right = 10;
     directionalLight.shadow.camera.top = 10;
     directionalLight.shadow.camera.bottom = -10;
-    scene.add(directionalLight);
-
- 
+    scene.add(directionalLight); 
   };
 
 
@@ -87,10 +85,8 @@ export const loadGLTFModel = async (
           roughness: 0.2,
           clearcoat: 1.0,
         });
-        
         // Create mesh
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        
         // Center the text by offsetting half its width
         const centeredPosition = new THREE.Vector3(
           textWidth / 2,
@@ -99,14 +95,11 @@ export const loadGLTFModel = async (
         );
         textMesh.position.copy(centeredPosition);
         textMesh.rotation.y = Math.PI; // Rotate to face the camera
-
-
         // manually set the scale of the text
         // required to show text on the backside of card
         if (scale) {
             textMesh.scale.set(scale[0], scale[1], scale[2]);
         }
-
         // Add to model
         model.add(textMesh);
       },

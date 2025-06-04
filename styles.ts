@@ -7,6 +7,7 @@ export const CardScreenStyles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: '#1a1a1a',
+      position: 'relative',
     },
     glView: {
       flex: 1,
@@ -84,6 +85,10 @@ export const CardScreenStyles = StyleSheet.create({
         fontSize: 12,
         marginBottom: 5,
       },
+
+      buttonContainer: {
+        position: 'absolute', top: 100,  right: 20, backgroundColor: 'red', height: 50, width: 50, borderRadius: 100, justifyContent: 'center', alignItems: 'center'
+      }
 
   });
 
