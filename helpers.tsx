@@ -34,12 +34,12 @@ export const loadGLTFModel = async (
 
   export const setupLighting = (scene: THREE.Scene): void => {
     // Ambient light for overall illumination
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2);
     scene.add(ambientLight);
 
     //Main directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 4);
-    directionalLight.position.set(5, 10, 5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(5, 5, 5);
     directionalLight.castShadow = true;
     directionalLight.shadow.camera.near = 0.1;
     directionalLight.shadow.camera.far = 50;

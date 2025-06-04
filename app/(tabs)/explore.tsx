@@ -41,17 +41,14 @@ export default function App(): React.JSX.Element {
 
 
   const materialProps = {
-    metalness: 0.90,
-    roughness: 0,
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.1,
-    envMapIntensity: 1.5,
-    color: '#588bbb', // Blue status default
+    metalness: 0.74,
+    roughness: 0.17,
+    clearcoat: 0.36,
+    clearcoatRoughness: 0.90,
+    envMapIntensity: 1,
+    color: '#272532', // Blue status default
     bloom: 2,
-    ambient: 2.0,
-    directional: 2.0,
     luminanceThreshold: 0.5,
-    luminanceSmoothing: 0.9
   };
 
     // Create PanResponder for handling touch/drag events
@@ -100,13 +97,7 @@ export default function App(): React.JSX.Element {
         };
         lastMoveTimeRef.current = currentTime;
         lastDeltaRef.current = { x: deltaX, y: deltaY };
-        
-        // // Update drag info display
-        // setDragInfo({ 
-        //   x: Math.round(touch.locationX), 
-        //   y: Math.round(touch.locationY) 
-        // });
-
+      
          
         },
         onPanResponderRelease: () => {
@@ -123,14 +114,6 @@ export default function App(): React.JSX.Element {
       // Cancel animation frame aka pause animation
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, []);
-
-
-  // Set initial rotation
-  useEffect(() => {
-    if (modelRef.current) {
-      modelRef.current.rotation.y = Math.PI;
-    }
   }, []);
 
 
@@ -155,7 +138,7 @@ export default function App(): React.JSX.Element {
         1000
       );
       camera.position.set(0, 0, 5); // 0,0,7
-      camera.lookAt(0, 0, 0);
+      // camera.lookAt(0, -1, 1);
 
       // Setup lighting
       setupLighting(scene);
@@ -217,8 +200,9 @@ export default function App(): React.JSX.Element {
       })  
   
         // Find center of screen
-        // const box = new THREE.Box3().setFromObject(statusCard);
+        //const box = new THREE.Box3().setFromObject(statusCard);
         statusCard.position.sub(new THREE.Vector3(0,-1.5,0));
+        statusCard.rotation.y = -3.5;
         modelRef.current = statusCard;
         scene.add(statusCard);
 
@@ -240,18 +224,21 @@ export default function App(): React.JSX.Element {
       const animate = (): void => {
           requestAnimationFrame(animate);
           if(animationCompleteRef.current === AnimationState.SPIN_UP) {
-            statusCard.position.y += 0.18; 
-            statusCard.rotation.y += 0.1;
-            if (statusCard.position.y > 6.1) {
+            statusCard.position.y += 0.15; 
+            statusCard.rotation.y += 0.2;
+            if (statusCard.position.y > 6.1 && statusCard.rotation.y > 0.1) {
               animationCompleteRef.current = AnimationState.SPIN_DOWN;
             }
           } else if (animationCompleteRef.current === AnimationState.SPIN_DOWN) {
-            statusCard.position.y -= 0.018;
-            statusCard.rotation.y += 0.1;
-            if (statusCard.position.y < 6.0 && statusCard.rotation.y > 0.1) {
-              statusCard.rotation
-              animationCompleteRef.current = AnimationState.COMPLETED;
-            }
+           
+              statusCard.position.y -= 0.01;
+              if (statusCard.rotation.y < 0.8) {
+                statusCard.rotation.y += 0.2;
+                
+              }
+              if (statusCard.position.y < 6.0 && statusCard.rotation.y > 0.8) {
+                animationCompleteRef.current = AnimationState.COMPLETED;
+              }
           } 
           else if (animationCompleteRef.current === AnimationState.COMPLETED) {
             // Apply momentum when not dragging
