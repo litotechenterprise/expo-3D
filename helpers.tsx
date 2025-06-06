@@ -52,60 +52,108 @@ export const loadGLTFModel = async (
 
 
 
-  export const addTextToModel = (model: THREE.Group, text: string, position: THREE.Vector3, scale?: number[]) => {
-    // Create text geometry
+  export const addTextToModel = async (model: THREE.Group, text: string, position: THREE.Vector3, scale?: number[]) => {
     const loader = new FontLoader();
-    loader.load(
-      'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
-      (font: any) => {
-        const textGeometry = new TextGeometry(text, {
-          font: font,
-          size: 0.105,
-          height: 0.004,
-          curveSegments: 12,
-          bevelEnabled: true,
-          bevelThickness: 0.0002,
-          bevelSize: 0.005,
-          bevelOffset: 0,
-          bevelSegments: 2
-        });
+    
+    const loadFont = async () => {
+      // Try loading GT-America-Mono JSON data directly
+      try {
+        console.log('Attempting to load GT-America-Mono font data...');
+        const fontData = require('./assets/fonts/gt-mono.json');
+        console.log('✅ GT-America-Mono font data imported successfully');
         
-        // Center the text
-        textGeometry.computeBoundingBox();
-
-        // multiply by -1 to show text on the backside of card
-        const multiplier = scale ? -1 : 1;
-        // Calculate the width of the text
-        const textWidth = (textGeometry.boundingBox!.max.x - textGeometry.boundingBox!.min.x) * multiplier;
-
-        // Create material
-        const textMaterial = new THREE.MeshPhysicalMaterial({
-          color: "#ffffff",
-          metalness: 0.74,
-          roughness: 0.2,
-          clearcoat: 1.0,
-        });
-        // Create mesh
-        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        // Center the text by offsetting half its width
-        const centeredPosition = new THREE.Vector3(
-          textWidth / 2,
-          position.y,
-          position.z
-        );
-        textMesh.position.copy(centeredPosition);
-        textMesh.rotation.y = Math.PI; // Rotate to face the camera
-        // manually set the scale of the text
-        // required to show text on the backside of card
-        if (scale) {
-            textMesh.scale.set(scale[0], scale[1], scale[2]);
+        // Use parse method for JSON data instead of load
+        try {
+          const font = loader.parse(fontData);
+          console.log('✅ GT-America-Mono font parsed successfully!');
+          createTextMesh(font);
+          return;
+        } catch (parseError) {
+          console.error('❌ Error parsing GT-America-Mono font:', parseError);
+          loadFallbackFont();
+          return;
         }
-        // Add to model
-        model.add(textMesh);
-      },
-      undefined,
-      (error) => {
-        console.error('Error loading font:', error);
+      } catch (importError) {
+        console.error('❌ Failed to import GT-America-Mono font data:', importError);
+        loadFallbackFont();
       }
-    );
+    };
+    
+    const loadFallbackFont = () => {
+      console.log('Loading fallback Helvetiker font...');
+      loader.load(
+        'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+        (font: any) => {
+          console.log('✅ Fallback font loaded');
+          createTextMesh(font);
+        },
+        undefined,
+        (error) => {
+          console.error('❌ All fonts failed to load:', error);
+          createFallbackGeometry();
+        }
+      );
+    };
+    
+    const createFallbackGeometry = () => {
+      console.error('Using fallback box geometry');
+      const fallbackGeometry = new THREE.BoxGeometry(1, 0.2, 0.05);
+      const fallbackMaterial = new THREE.MeshBasicMaterial({ 
+        color: "#ffffff"
+      });
+      const fallbackMesh = new THREE.Mesh(fallbackGeometry, fallbackMaterial);
+      fallbackMesh.layers.set(1);
+      fallbackMesh.position.copy(position);
+      model.add(fallbackMesh);
+    };
+    
+    const createTextMesh = (font: any) => {
+      const textGeometry = new TextGeometry(text.toUpperCase(), {
+        font: font,
+        size: 0.08,
+        depth: 0.001,
+      });
+      
+      // Center the text
+      textGeometry.computeBoundingBox();
+
+      // multiply by -1 to show text on the backside of card
+      const multiplier = scale ? -1 : 1;
+      // Calculate the width of the text
+      const textWidth = (textGeometry.boundingBox!.max.x - textGeometry.boundingBox!.min.x) * multiplier;
+
+      // Create material for text that naturally avoids bloom
+      const textMaterial = new THREE.MeshBasicMaterial({
+        color: "#ffffff", // Slightly dimmer to avoid bloom threshold
+        transparent: false,
+        fog: false // Exclude from fog as well
+      });
+      
+      // Create mesh
+      const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+      
+      // Exclude text from bloom by setting it to a different render layer
+      textMesh.layers.set(1); // Layer 1 = no bloom, Layer 0 = with bloom
+      
+      // Center the text by offsetting half its width
+      const centeredPosition = new THREE.Vector3(
+        textWidth / 2,
+        position.y,
+        position.z
+      );
+      textMesh.position.copy(centeredPosition);
+      textMesh.rotation.y = Math.PI; // Rotate to face the camera
+      
+      // manually set the scale of the text
+      // required to show text on the backside of card
+      if (scale) {
+        textMesh.scale.set(scale[0], scale[1], scale[2]);
+      }
+      
+      // Add to model
+      model.add(textMesh);
+    };
+    
+    // Start the font loading process
+    await loadFont();
   };
