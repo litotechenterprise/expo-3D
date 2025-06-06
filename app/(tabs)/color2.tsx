@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 
-export default function App(): React.JSX.Element {
+export default function Color2Screen(): React.JSX.Element {
   const [modalVisible, setModalVisible] = useState(false);
   const toggleModal = () => {
     setModalVisible(!modalVisible);
@@ -17,7 +17,7 @@ export default function App(): React.JSX.Element {
   
   // Get the color from route params (from tab selection)
   const params = useLocalSearchParams<{ statusColor?: string; statusName?: string }>();
-  const selectedColor = params.statusColor || statusOptions[0].color;
+  const selectedColor = params.statusColor || statusOptions[2].color;
   
   const [ materialProps, setMaterialProps] = useState({
     ...DEFAULT_MATERIAL_PROPS,
@@ -65,5 +65,4 @@ export default function App(): React.JSX.Element {
 
     </View>
   );
-}
-
+} 
